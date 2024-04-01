@@ -1,4 +1,3 @@
-// minimum-cost-path.js
 import React, { useState, useEffect } from 'react';
 import GridCell from './grid-cell';
 import './minimum-cost-path.css';
@@ -19,14 +18,17 @@ function MinimumCostPath() {
   const [grid, setGrid] = useState(gridVal);
 
   const [minimumCostGrid, setMinimumCostGrid] = useState([]);
-  const [history, setHistory] = useState([]);
-  const [currentStep, setCurrentStep] = useState(0);
+  // const [history, setHistory] = useState([]);
+  // let [currentStep, setCurrentStep] = useState(0);
+  const history = [];
+  let currentStep = 0;
+  let intervalId = null;
 
   useEffect(() => {
     calculateMinimumCost();
   }, []);
 
-  const calculateMinimumCost = async () => {
+  const calculateMinimumCost = () => {
     const minimumCostGenerator = [];
 
     // Minimum Cost Path calculation algorithm
@@ -35,21 +37,8 @@ function MinimumCostPath() {
       minimumCostGenerator.push(row);
 
       for (let c = 0; c < grid[r].length; c++) {
-        if (currentStep >= history.length) {
-          /**
-           * PUSH CURRENT STATE TO HISTORY
-           * This part concatenates the shallow copy of minimumCostGenerator to the end of history, 
-           * creating a new array that contains all the elements of history along with the new snapshot of minimumCostGenerator. 
-           * Essentially, it's creating a new array representing the updated history with the latest state appended to it.
-           */
-          setHistory([...history, [...minimumCostGenerator]]);
-          setCurrentStep(currentStep + 1); // Increment currentStep
-        }
-
-        await new Promise(resolve => setTimeout(resolve, 2000)); // Pause for 2 seconds
-
         if(r === 0 && c === 0) {
-          // Starting cell
+          // Starting cell - 0th row, 0th column
           row.push(grid[r][c]);
         } else if(r === 0) {
           // 0th row
@@ -62,24 +51,49 @@ function MinimumCostPath() {
           row.push(Math.min(grid[r][c] + minimumCostGenerator[r-1][c], grid[r][c] + minimumCostGenerator[r][c-1]));
         }
 
-        setMinimumCostGrid([...minimumCostGenerator]); // Update minimumCostGenerator grid after each step
+        // setHistory([...history, [...minimumCostGenerator]]);
+        history.push(JSON.stringify([...minimumCostGenerator]));
       }
     }
 
-    setMinimumCostGrid(minimumCostGenerator); // Set final minimumCostGenerator grid
+    simulateDryRun();
+  };
+
+  const simulateDryRun = () => {
+    const totalSteps = grid.length * grid[0].length;
+
+    intervalId = setInterval(() => {
+      if (currentStep < totalSteps && history && history.length > 0) {
+        setMinimumCostGrid(JSON.parse(history[currentStep]));
+        // setCurrentStep(currentStep + 1);
+        currentStep++;
+      } else {
+        clearInterval(intervalId);
+      }
+    }, 2000);
+  };
+
+  const stopDryRun = () => {
+    if(intervalId) clearInterval(intervalId);
   };
 
   const handleBack = () => {
+    stopDryRun();
+
     if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
-      setMinimumCostGrid(history[currentStep - 1]);
+      // setCurrentStep(currentStep - 1);
+      currentStep--;
+      setMinimumCostGrid(JSON.parse(history[currentStep]));
     }
   };
 
   const handleForward = () => {
+    stopDryRun();
+    
     if (currentStep < history.length - 1) {
-      setCurrentStep(currentStep + 1);
-      setMinimumCostGrid(history[currentStep + 1]);
+      // setCurrentStep(currentStep + 1);
+      currentStep++;
+      setMinimumCostGrid(JSON.parse(history[currentStep]));
     }
   };
 
@@ -101,7 +115,7 @@ function MinimumCostPath() {
                     key={colIndex}
                     cost={cost}
                     cumulativeCost={
-                      minimumCostGrid[rowIndex] ? minimumCostGrid[rowIndex][colIndex] : undefined
+                      minimumCostGrid && minimumCostGrid[rowIndex] ? minimumCostGrid[rowIndex][colIndex] : undefined
                     } // Add a check to ensure minimumCostGrid[rowIndex] is defined
                 />
               ))}
