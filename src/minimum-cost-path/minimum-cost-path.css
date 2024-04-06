@@ -11,6 +11,12 @@ table {
     text-align: center;
   }
   
+  .btn-container {
+    /* display: flex;
+    justify-content: space-between; */
+    margin: 10px 0;
+  }
+
   .cell {
     position: relative;
   }

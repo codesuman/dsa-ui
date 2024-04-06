@@ -1,34 +1,29 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import GridCell from './grid-cell';
 import './minimum-cost-path.css';
 
-function MinimumCostPath() {
-  // const gridVal = [
-  //   [1, 3, 5],
-  //   [2, 4, 7],
-  //   [5, 8, 9]
-  // ];
+class MinimumCostPath extends React.Component {
+  constructor(props) {
+    super(props);
 
-  const gridVal = [
-    [1, 3, 1],
-    [1, 5, 1],
-    [4, 2, 1]
-  ];
+    this.state = {
+      grid: [
+        [1, 3, 1],
+        [1, 5, 1],
+        [4, 2, 1]
+      ],
+      minimumCostGrid: [],
+      history: [],
+      currentStep: 0
+    };
+  }
 
-  const [grid, setGrid] = useState(gridVal);
+  componentDidMount() {
+    this.calculateMinimumCost();
+  }
 
-  const [minimumCostGrid, setMinimumCostGrid] = useState([]);
-  // const [history, setHistory] = useState([]);
-  // let [currentStep, setCurrentStep] = useState(0);
-  const history = [];
-  let currentStep = 0;
-  let intervalId = null;
-
-  useEffect(() => {
-    calculateMinimumCost();
-  }, []);
-
-  const calculateMinimumCost = () => {
+  calculateMinimumCost = () => {
+    const { grid } = this.state;
     const minimumCostGenerator = [];
 
     // Minimum Cost Path calculation algorithm
@@ -38,7 +33,7 @@ function MinimumCostPath() {
 
       for (let c = 0; c < grid[r].length; c++) {
         if(r === 0 && c === 0) {
-          // Starting cell - 0th row, 0th column
+          // Starting cell
           row.push(grid[r][c]);
         } else if(r === 0) {
           // 0th row
@@ -51,80 +46,85 @@ function MinimumCostPath() {
           row.push(Math.min(grid[r][c] + minimumCostGenerator[r-1][c], grid[r][c] + minimumCostGenerator[r][c-1]));
         }
 
-        // setHistory([...history, [...minimumCostGenerator]]);
-        history.push(JSON.stringify([...minimumCostGenerator]));
+        // this.setHistory([...this.state.history, [...minimumCostGenerator]]);
+        this.setHistory(minimumCostGenerator);
       }
     }
 
-    simulateDryRun();
-  };
-
-  const simulateDryRun = () => {
+    let step = 0;
     const totalSteps = grid.length * grid[0].length;
 
-    intervalId = setInterval(() => {
-      if (currentStep < totalSteps && history && history.length > 0) {
-        setMinimumCostGrid(JSON.parse(history[currentStep]));
-        // setCurrentStep(currentStep + 1);
-        currentStep++;
+    const intervalId = setInterval(() => {
+      if (step < totalSteps) {
+        this.setMinimumCostGrid(this.state.history[step]);
+        step++;
+        this.setState({ currentStep: step });
       } else {
         clearInterval(intervalId);
       }
     }, 2000);
   };
 
-  const stopDryRun = () => {
-    if(intervalId) clearInterval(intervalId);
+  setHistory = (newHistory) => {
+    // this.setState({ history: newHistory }); // DOESN'T WORK
+    this.state.history.push(JSON.stringify([...newHistory])); // WORKS
+    // this.state.history.push([...newHistory]); // INCONSISTENTLY WORKS
   };
 
-  const handleBack = () => {
-    stopDryRun();
+  setMinimumCostGrid = (newMinimumCostGrid) => {
+    // this.setState({ minimumCostGrid: newMinimumCostGrid }); // DOESN'T WORK
+    this.setState({ minimumCostGrid: JSON.parse(newMinimumCostGrid) }); // WORKS
+    // this.setState({ minimumCostGrid: newMinimumCostGrid }); // INCONSISTENTLY WORKS
+  };
 
+  handleBack = () => {
+    const { currentStep, history } = this.state;
     if (currentStep > 0) {
-      // setCurrentStep(currentStep - 1);
-      currentStep--;
-      setMinimumCostGrid(JSON.parse(history[currentStep]));
+      this.setState({ currentStep: currentStep - 1 });
+      this.setMinimumCostGrid(history[currentStep - 1]);
     }
   };
 
-  const handleForward = () => {
-    stopDryRun();
-    
+  handleForward = () => {
+    const { currentStep, history } = this.state;
     if (currentStep < history.length - 1) {
-      // setCurrentStep(currentStep + 1);
-      currentStep++;
-      setMinimumCostGrid(JSON.parse(history[currentStep]));
+      this.setState({ currentStep: currentStep + 1 });
+      this.setMinimumCostGrid(history[currentStep + 1]);
     }
   };
 
-  return (
-    <div className="App">
-      <h1>Minimum Cost Path</h1>
-      <button onClick={handleBack} disabled={currentStep === 0}>
-        Back
-      </button>
-      <button onClick={handleForward} disabled={currentStep === history.length - 1}>
-        Forward
-      </button>
-      <table>
-        <tbody>
-          {grid.map((row, rowIndex) => (
-            <tr key={rowIndex}>
-              {row.map((cost, colIndex) => (
-                <GridCell
-                    key={colIndex}
-                    cost={cost}
-                    cumulativeCost={
-                      minimumCostGrid && minimumCostGrid[rowIndex] ? minimumCostGrid[rowIndex][colIndex] : undefined
-                    } // Add a check to ensure minimumCostGrid[rowIndex] is defined
-                />
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
+  render() {
+    const { grid, minimumCostGrid, currentStep, history } = this.state;
+
+    return (
+      <div className="App">
+        <h1>Minimum Cost Path</h1>
+        <button onClick={this.handleBack} disabled={currentStep === 0}>
+          Back
+        </button>
+        <button onClick={this.handleForward} disabled={currentStep === history.length - 1}>
+          Forward
+        </button>
+        <table>
+          <tbody>
+            {grid.map((row, rowIndex) => (
+              <tr key={rowIndex}>
+                {row.map((cost, colIndex) => (
+                  <GridCell
+                      key={colIndex}
+                      cost={cost}
+                      cumulativeCost={
+                        minimumCostGrid && minimumCostGrid[rowIndex] ? minimumCostGrid[rowIndex][colIndex] : undefined
+                      } // Add a check to ensure minimumCostGrid[rowIndex] is defined
+                  />
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
 }
 
 export default MinimumCostPath;
